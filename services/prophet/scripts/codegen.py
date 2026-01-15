@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 def main():
-    input_path = Path("../../contracts/schemas")
+    input_path = Path("../../core/schemas")
     output_path = Path("models/generated")
     output_path.mkdir(parents=True, exist_ok=True)
     

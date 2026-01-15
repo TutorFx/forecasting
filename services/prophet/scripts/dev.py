@@ -18,7 +18,7 @@ def main():
     print("Gerando modelos iniciais...")
     run_codegen()
 
-    schema_path = Path("../../contracts/schemas").resolve()
+    schema_path = Path("../../core/schemas").resolve()
     event_handler = ReloadHandler()
     observer = Observer()
     observer.schedule(event_handler, str(schema_path), recursive=False)

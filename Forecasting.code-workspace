@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "core",
+			"path": "core"
+		},
+		{
+			"name": "prophet",
+			"path": "services/prophet"
+		}
+	]
+}
