@@ -1,11 +1,14 @@
 [project]
-name = "prophet-service"
+name = "python-service"
 version = "0.1.0"
-description = "Microserviço de Previsão com Prophet"
+description = "Microserviço Python para processamento de dados de séries temporais."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "aio-pika>=9.5.8",
+    "avrotize>=3.0.2",
     "pika>=1.3.2",
+    "protobuf-to-pydantic>=0.3.3.1",
     "pydantic>=2.12.5",
 ]
 

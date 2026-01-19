@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ForecastResponse",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "description": "Estado da execução (ex: success, failed)"
+    },
+    "forecast": {
+      "type": "array",
+      "description": "Lista contendo a série histórica ajustada e as previsões futuras",
+      "items": {
+        "type": "object",
+        "description": "Linha de resultado do Prophet (yhat)",
+        "properties": {
+          "ds": {
+            "type": "string",
+            "description": "Timestamp da previsão"
+          },
+          "yhat": {
+            "type": "number",
+            "description": "Valor central previsto"
+          },
+          "yhat_lower": {
+            "type": "number",
+            "description": "Limite inferior do intervalo de confiança"
+          },
+          "yhat_upper": {
+            "type": "number",
+            "description": "Limite superior do intervalo de confiança"
+          },
+          "trend": {
+            "type": "number",
+            "description": "Componente de tendência"
+          },
+          "seasonal": {
+            "type": "number",
+            "description": "Componente de sazonalidade combinada"
+          },
+          "holidays": {
+            "type": "number",
+            "description": "Efeito específico de feriados"
+          }
+        },
+        "required": [
+          "ds",
+          "yhat",
+          "yhat_lower",
+          "yhat_upper",
+          "trend"
+        ]
+      }
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "forecast"
+  ]
+}

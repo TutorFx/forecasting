@@ -45,12 +45,21 @@ export default defineNuxtModule({
       return `import {z} from 'zod/v4' \n${schemaMap.join('\n')}`
     }
 
-    nuxt.hook('build:before', async () => {
-      nuxt.options.alias['#project-schemas'] = addTemplate({
-        filename: 'project-schemas.ts',
-        getContents: async () => await generateZodSchemaContent(),
-        write: true
-      }).dst
+    const template = addTemplate({
+      filename: 'project-schemas.ts',
+      getContents: async () => await generateZodSchemaContent(),
+      write: true
+    })
+
+    nuxt.options.alias['#project-schemas'] = template.dst
+
+    nuxt.hook('nitro:config', (nitroConfig) => {
+      nitroConfig.alias = nitroConfig.alias || {}
+      nitroConfig.alias['#project-schemas'] = template.dst
+    })
+
+    nuxt.hook('prepare:types', ({ references }) => {
+      references.push({ path: template.dst })
     })
   }
 })

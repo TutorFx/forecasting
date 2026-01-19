@@ -11,6 +11,15 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
+  runtimeConfig: {
+    rabbitmq: {
+      hostname: process.env.RABBITMQ_HOST,
+      port: Number(process.env.RABBITMQ_PORT),
+      username: process.env.RABBITMQ_DEFAULT_USER,
+      password: process.env.RABBITMQ_DEFAULT_PASS
+    }
+  },
+
   routeRules: {
     '/': { prerender: true }
   },

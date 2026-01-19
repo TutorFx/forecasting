@@ -1,9 +1,0 @@
-{
-  "title": "ForecastInput",
-  "type": "object",
-  "properties": {
-    "job_id": { "type": "string" },
-    "y_hat": { "type": "number" }
-  },
-  "required": ["job_id", "y_hat"]
-}
