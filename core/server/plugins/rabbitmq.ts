@@ -17,15 +17,9 @@ export default defineNitroPlugin(async (nitroApp) => {
     console.error('RabbitMQ connection error:', err)
   })
 
-  channel.consume('tasks', (msg) => {
-    if (msg) {
-      const decrypted = fromBuffer(prophetRequest, msg.content)
-      console.log('Received message:', decrypted)
-      // channel.ack(msg)
-    }
-  })
+  // channel.consume('tasks', ...) block removed as requested
 
-  channel.sendToQueue('tasks', Buffer.from(toBuffer(prophetRequest, {
+  channel.sendToQueue('ProcessProphet', Buffer.from(toBuffer(prophetRequest, {
     job_id: '',
     parameters: {
       periods: 10,

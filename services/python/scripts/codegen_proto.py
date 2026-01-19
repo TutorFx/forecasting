@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
+from grpc_tools import protoc
+import sys
 
 class JsonToProto:
     def __init__(self):
@@ -11,8 +13,13 @@ class JsonToProto:
             "boolean": "bool"
         }
 
-    def convert(self, schema: Dict[str, Any], root_name: str) -> str:
-        lines = ['syntax = "proto3";', '', f'message {root_name} {{']
+    def to_snake_case(self, name: str) -> str:
+        import re
+        name = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+
+    def convert(self, schema: Dict[str, Any], root_name: str, package_name: str) -> str:
+        lines = ['syntax = "proto3";', f'package {package_name};', '', f'message {root_name} {{']
         
         properties = schema.get("properties", {})
         nested_messages: List[str] = []
@@ -150,12 +157,13 @@ def generate_proto():
             with open(json_file, "r") as f:
                 schema = json.load(f)
             
-            # Start root name from schema title or filename
-            root_name = schema.get("title", json_file.stem)
-            # Sanitize to valid Message name (PascalCase)
-            # Remove special chars, spaces, etc if needed. Assuming mostly clean titles.
+            # Determine package name from filename (snake_case)
+            package_name = converter.to_snake_case(json_file.stem)
             
-            proto_content = converter.convert(schema, root_name)
+            # Force root name to "Message"
+            root_name = "Message"
+            
+            proto_content = converter.convert(schema, root_name, package_name)
             output_file = output_path / f"{json_file.stem}.proto"
             
             with open(output_file, "w") as f:
@@ -165,6 +173,39 @@ def generate_proto():
             
         except Exception as e:
             print(f"  [X] Failed to process {json_file.name}: {e}")
+
+    # Compile with betterproto
+    proto_files = list(output_path.glob("*.proto"))
+    
+    if not proto_files:
+        print("No proto files found to compile.")
+        return
+
+    # Add init file to make it a package if missing
+    (output_path / "__init__.py").touch(exist_ok=True)
+    
+    cmd = [
+        "grpc_tools.protoc",
+        f"-I{output_path}",
+        f"--python_betterproto_out={output_path}",
+    ] + [str(p) for p in proto_files]
+    
+    print(f"Compiling {len(proto_files)} proto files with betterproto...")
+    
+    # Save original argv
+    original_argv = sys.argv
+    try:
+        sys.argv = cmd
+        # protoc.main() uses sys.argv
+        exit_code = protoc.main(cmd)
+    finally:
+        sys.argv = original_argv
+    
+    if exit_code != 0:
+        print(f"Protoc failed with code {exit_code}")
+        sys.exit(exit_code)
+    else:
+        print("Betterproto compilation successful.")
 
 if __name__ == "__main__":
     generate_proto()
