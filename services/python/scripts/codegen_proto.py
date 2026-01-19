@@ -1,5 +1,139 @@
-import subprocess
+import json
 from pathlib import Path
+from typing import Dict, Any, List, Tuple
+
+class JsonToProto:
+    def __init__(self):
+        self.type_mapping = {
+            "string": "string",
+            "integer": "int32",
+            "number": "double",
+            "boolean": "bool"
+        }
+
+    def convert(self, schema: Dict[str, Any], root_name: str) -> str:
+        lines = ['syntax = "proto3";', '', f'message {root_name} {{']
+        
+        properties = schema.get("properties", {})
+        nested_messages: List[str] = []
+        fields: List[str] = []
+        
+        # Determine required fields to mark optional if needed (though strict Proto3 
+        # doesn't strictly need 'optional' for presence unless explicit uniqueness is required,
+        # standard fields are implicit presence. We'll stick to standard implicit presence for now
+        # unless specifics demand 'optional').
+        
+        field_number = 1
+        for prop_name, prop_def in properties.items():
+            field_lines, extra_messages = self._process_field(prop_name, prop_def, field_number)
+            fields.extend(field_lines)
+            nested_messages.extend(extra_messages)
+            field_number += 1
+            
+        # Add nested messages at the top of the message body
+        if nested_messages:
+            for msg in nested_messages:
+                lines.extend("  " + line for line in msg.split('\n'))
+            lines.append('')
+
+        # Add fields
+        lines.extend("  " + line for line in fields)
+        lines.append("}")
+        
+        return "\n".join(lines) + "\n"
+
+    def _process_field(self, name: str, definition: Dict[str, Any], number: int) -> Tuple[List[str], List[str]]:
+        prop_type = definition.get("type")
+        nested_msgs = []
+        field_stmt = ""
+
+        if prop_type == "object":
+            # Create a nested message name. simple capitalization.
+            sub_msg_name = "".join(word.capitalize() for word in name.split('_'))
+            
+            # Generate the nested message body recursively
+            # We construct a fake schema wrapper for the nested object to reuse logic if we wanted,
+            # but here we just need the body.
+            sub_lines = [f"message {sub_msg_name} {{"]
+            sub_props = definition.get("properties", {})
+            sub_field_num = 1
+            sub_fields = []
+            
+            for sub_p_name, sub_p_def in sub_props.items():
+                f_lines, m_lines = self._process_field(sub_p_name, sub_p_def, sub_field_num)
+                sub_fields.extend(f_lines)
+                nested_msgs.extend(m_lines) # Bubble up any deeper nested messages if strategy changes, 
+                                            # but typically we nest them inside this one or strictly bubble.
+                                            # Actually, Protobuf allows defining nested messages inside messages.
+                                            # Let's simple-nest them here.
+                sub_field_num += 1
+            
+            # Re-nest the bubbled messages inside IS correct for proto.
+            if nested_msgs:
+               # However, my current simple recursion bubbles them all the way to current scope. 
+               # Let's just put them validly inside.
+               pass
+
+            # Update: recursing `_process_field` bubbles `nested_msgs` which are fully formed `message X {}`.
+            # We should put these INSIDE the current `sub_msg_name` definition for proper scoping.
+            for m in nested_msgs:
+                sub_lines.extend("  " + l for l in m.split('\n'))
+            nested_msgs = [] # Clear because we consumed them
+
+            sub_lines.extend("  " + l for l in sub_fields)
+            sub_lines.append("}")
+            
+            # The definition of the message is strictly returned as a "nested message"
+            nested_msgs.append("\n".join(sub_lines))
+            field_stmt = f"{sub_msg_name} {name} = {number};"
+
+        elif prop_type == "array":
+            items = definition.get("items", {})
+            item_type = items.get("type")
+            
+            if item_type == "object":
+                # Array of Objects -> repeated Message
+                sub_msg_name = "".join(word.capitalize() for word in name.split('_'))
+                
+                # Generate the nested message
+                sub_lines = [f"message {sub_msg_name} {{"]
+                sub_props = items.get("properties", {})
+                
+                sub_field_num = 1
+                inner_nested = []
+                inner_fields = []
+                for sub_p_name, sub_p_def in sub_props.items():
+                    f_lines, m_lines = self._process_field(sub_p_name, sub_p_def, sub_field_num)
+                    inner_fields.extend(f_lines)
+                    inner_nested.extend(m_lines)
+                    sub_field_num += 1
+                
+                for m in inner_nested:
+                    sub_lines.extend("  " + l for l in m.split('\n'))
+                    
+                sub_lines.extend("  " + l for l in inner_fields)
+                sub_lines.append("}")
+                
+                nested_msgs.append("\n".join(sub_lines))
+                field_stmt = f"repeated {sub_msg_name} {name} = {number};"
+                
+            elif item_type in self.type_mapping:
+                # simple repeated
+                proto_type = self.type_mapping[item_type]
+                field_stmt = f"repeated {proto_type} {name} = {number};"
+            else:
+                 # Fallback or mixed types not easily handled
+                 field_stmt = f"// repeated {item_type} {name} = {number}; // TODO: fix type"
+
+        elif prop_type in self.type_mapping:
+            proto_type = self.type_mapping[prop_type]
+            field_stmt = f"{proto_type} {name} = {number};"
+            
+        else:
+            field_stmt = f"// unknown type {prop_type} {name} = {number};"
+
+        return [field_stmt], nested_msgs
+
 
 def generate_proto():
     input_path = Path("../../core/schemas").resolve()
@@ -7,25 +141,30 @@ def generate_proto():
     output_path.mkdir(parents=True, exist_ok=True)
     
     json_files = list(input_path.glob("*.json"))
+    converter = JsonToProto()
+    
+    print(f"Generating protos in {output_path}...")
     
     for json_file in json_files:
-        output_file = output_path / f"{json_file.stem}.proto"
-        message_name = json_file.stem
-        
         try:
-            result = subprocess.run([
-                "npx", "-y", "jsonschema-protobuf", str(json_file)
-            ], capture_output=True, text=True, check=True)
+            with open(json_file, "r") as f:
+                schema = json.load(f)
             
-            content = result.stdout
-
+            # Start root name from schema title or filename
+            root_name = schema.get("title", json_file.stem)
+            # Sanitize to valid Message name (PascalCase)
+            # Remove special chars, spaces, etc if needed. Assuming mostly clean titles.
+            
+            proto_content = converter.convert(schema, root_name)
+            output_file = output_path / f"{json_file.stem}.proto"
+            
             with open(output_file, "w") as f:
-                f.write(content)
-
-        except subprocess.CalledProcessError as e:
-            print(f"  [X] Erro ao processar {json_file.name}: {e.stderr}")
+                f.write(proto_content)
+                
+            print(f"  [+] Generated {output_file.name}")
+            
         except Exception as e:
-            print(f"  [X] Erro inesperado: {e}")
+            print(f"  [X] Failed to process {json_file.name}: {e}")
 
 if __name__ == "__main__":
     generate_proto()
