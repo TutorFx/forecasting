@@ -17,6 +17,10 @@
         "freq": {
           "type": "string",
           "description": "Frequência temporal (ex: D, H, W)"
+        },
+        "holiday_country_code": {
+          "type": "string",
+          "description": "Código do país para feriados (ex: BR, US)"
         }
       },
       "required": [

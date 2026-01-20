@@ -54,6 +54,24 @@
           "trend"
         ]
       }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Métricas de acurácia do modelo",
+      "properties": {
+        "mae": {
+          "type": "number",
+          "description": "Mean Absolute Error"
+        },
+        "rmse": {
+          "type": "number",
+          "description": "Root Mean Squared Error"
+        },
+        "mape": {
+          "type": "number",
+          "description": "Mean Absolute Percentage Error"
+        }
+      }
     }
   },
   "required": [

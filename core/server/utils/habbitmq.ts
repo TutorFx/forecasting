@@ -25,8 +25,9 @@ export async function getRabbitMQConnection() {
   return connection
 }
 
-export async function createRabbitMQChannel() {
-  const connection = await getRabbitMQConnection()
+export async function createRabbitMQChannel(connection: Awaited<
+  ReturnType<typeof getRabbitMQConnection>
+>) {
   const channel = await connection.createChannel()
 
   await channel.assertQueue('tasks', { durable: true })

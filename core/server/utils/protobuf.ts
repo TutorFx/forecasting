@@ -8,7 +8,7 @@ export function toBuffer<T extends z.ZodRawShape>(
 ) {
   const { root } = protobuf.parse(zodToProtobuf(schema as never))
   const SimpleMessage = root.lookupType('Message')
-  return SimpleMessage.encode(data).finish()
+  return Buffer.from(SimpleMessage.encode(data).finish())
 }
 
 export function fromBuffer<T extends z.ZodRawShape>(

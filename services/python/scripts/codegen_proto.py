@@ -139,7 +139,17 @@ class JsonToProto:
         else:
             field_stmt = f"// unknown type {prop_type} {name} = {number};"
 
-        return [field_stmt], nested_msgs
+        stmts = []
+        description = definition.get("description")
+        if description:
+            # Clean up newlines for single line comment or handle block if needed.
+            # For now, simple single line expectation or just replacing newlines.
+            clean_desc = description.replace('\n', ' ')
+            stmts.append(f"// {clean_desc}")
+
+        stmts.append(field_stmt)
+
+        return stmts, nested_msgs
 
 
 def generate_proto():
