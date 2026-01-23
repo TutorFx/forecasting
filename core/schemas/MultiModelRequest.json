@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MultiModelForecastRequest",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Identificador único do job (UUID)"
+    },
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "periods": {
+          "type": "integer",
+          "description": "Quantidade de períodos a prever"
+        },
+        "freq": {
+          "type": "string",
+          "description": "Frequência temporal (ex: D, H, W)"
+        },
+        "holiday_country_code": {
+          "type": "string",
+          "description": "Código do país para feriados (ex: BR, US)"
+        }
+      },
+      "required": [
+        "periods",
+        "freq"
+      ]
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data": {
+      "type": "array",
+      "description": "Lista de observações tipadas para compatibilidade com repeated messages",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ds": {
+            "type": "string",
+            "description": "Datestamp (coluna de tempo)"
+          },
+          "y": {
+            "type": "number",
+            "description": "Valor numérico (coluna alvo)"
+          }
+        },
+        "required": [
+          "ds",
+          "y"
+        ]
+      }
+    }
+  },
+  "required": [
+    "job_id",
+    "parameters",
+    "data"
+  ]
+}

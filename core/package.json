@@ -21,6 +21,7 @@
     "@types/amqplib": "^0.10.8",
     "@types/node": "^25.0.9",
     "amqplib": "^0.10.9",
+    "drizzle-orm": "^0.45.1",
     "eslint": "^9.39.2",
     "json-schema-to-zod": "^2.7.0",
     "protobufjs": "^8.0.0",

@@ -10,6 +10,17 @@ services:
     env_file:
       - core/.env
 
+  db:
+    image: pgvector/pgvector:pg17
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    env_file:
+      - core/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data 
+
 volumes:
   rabbitmq_data:
+    driver: local
+  postgres_data:
     driver: local
