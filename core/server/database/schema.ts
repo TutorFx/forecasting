@@ -1,57 +1,69 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { pgTable, uuid, varchar, doublePrecision, timestamp, integer, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
-const timestamps = {
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
-}
+export const forecastJobs = pgTable('forecast_jobs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: varchar('job_id', { length: 255 }).notNull().unique(),
+  status: varchar('status', { length: 50 }).notNull(),
 
-export const users = sqliteTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  email: text('email').notNull(),
-  name: text('name').notNull(),
-  avatar: text('avatar').notNull(),
-  username: text('username').notNull(),
-  provider: text('provider').notNull(), // 'github'
-  providerId: text('provider_id').notNull(),
-  ...timestamps
-}, table => [
-  uniqueIndex('users_provider_id_idx').on(table.provider, table.providerId)
-])
+  mae: doublePrecision('mae'),
+  rmse: doublePrecision('rmse'),
+  mape: doublePrecision('mape'),
 
-export const usersRelations = relations(users, ({ many }) => ({
-  chats: many(chats)
+  createdAt: timestamp('created_at').defaultNow().notNull()
+})
+
+export const forecastItems = pgTable('forecast_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: uuid('job_internal_id').references(() => forecastJobs.id, { onDelete: 'cascade' }),
+
+  ds: timestamp('ds').notNull(),
+  yhat: doublePrecision('yhat').notNull(),
+  yhatLower: doublePrecision('yhat_lower').notNull(),
+  yhatUpper: doublePrecision('yhat_upper').notNull(),
+  trend: doublePrecision('trend').notNull(),
+
+  seasonal: doublePrecision('seasonal'),
+  holidays: doublePrecision('holidays')
+})
+
+export const forecastJobsRelations = relations(forecastJobs, ({ many }) => ({
+  forecast: many(forecastItems)
 }))
 
-export const chats = sqliteTable('chats', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  title: text('title'),
-  userId: text('user_id').notNull(),
-  ...timestamps
-}, table => [
-  index('chats_user_id_idx').on(table.userId)
-])
-
-export const chatsRelations = relations(chats, ({ one, many }) => ({
-  user: one(users, {
-    fields: [chats.userId],
-    references: [users.id]
-  }),
-  messages: many(messages)
+export const forecastItemsRelations = relations(forecastItems, ({ one }) => ({
+  job: one(forecastJobs, {
+    fields: [forecastItems.jobId],
+    references: [forecastJobs.id]
+  })
 }))
 
-export const messages = sqliteTable('messages', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  chatId: text('chat_id').notNull().references(() => chats.id, { onDelete: 'cascade' }),
-  role: text('role', { enum: ['user', 'assistant', 'system'] }).notNull(),
-  parts: text('parts', { mode: 'json' }),
-  ...timestamps
-}, table => [
-  index('messages_chat_id_idx').on(table.chatId)
-])
+export const forecastRequests = pgTable('forecast_requests', {
+  jobId: uuid('job_id').primaryKey(),
+  periods: integer('periods').notNull(),
+  freq: varchar('freq', { length: 10 }).notNull(),
+  holidayCountryCode: varchar('holiday_country_code', { length: 5 }),
 
-export const messagesRelations = relations(messages, ({ one }) => ({
-  chat: one(chats, {
-    fields: [messages.chatId],
-    references: [chats.id]
+  columns: text('columns').array(),
+
+  createdAt: timestamp('created_at').defaultNow().notNull()
+})
+
+export const forecastRequestData = pgTable('forecast_request_data', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: uuid('job_id').references(() => forecastRequests.jobId, { onDelete: 'cascade' }).notNull(),
+
+  ds: timestamp('ds').notNull(),
+  y: doublePrecision('y').notNull()
+})
+
+export const forecastRequestsRelations = relations(forecastRequests, ({ many }) => ({
+  observations: many(forecastRequestData)
+}))
+
+export const forecastRequestDataRelations = relations(forecastRequestData, ({ one }) => ({
+  request: one(forecastRequests, {
+    fields: [forecastRequestData.jobId],
+    references: [forecastRequests.jobId]
   })
 }))
