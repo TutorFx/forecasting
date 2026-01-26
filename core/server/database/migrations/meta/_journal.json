@@ -36,6 +36,13 @@
       "when": 1769264868158,
       "tag": "0004_boring_spitfire",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1769427894506,
+      "tag": "0005_luxuriant_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

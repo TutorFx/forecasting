@@ -1,0 +1,1 @@
+ALTER TABLE "forecast_jobs" ALTER COLUMN "model" DROP DEFAULT;

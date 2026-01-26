@@ -1,4 +1,5 @@
 import { prophetRequest } from '#project-schemas'
+import { th } from 'zod/v4/locales'
 import { adaptMultiModel } from '../utils/adapters'
 import { tables, eq } from '../utils/drizzle'
 
@@ -22,6 +23,10 @@ export default defineEventHandler(async () => {
       const [ds, y] = line.split(';')
       return { ds: new Date(ds!), y: parseFloat(y!) }
     })
+
+  console.log(csvData)
+
+  throw new Error('Bloq')
 
   const symbol = 'AMZN'
   const periods = 12

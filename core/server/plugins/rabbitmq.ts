@@ -26,6 +26,7 @@ export default defineNitroPlugin(async (nitroApp) => {
         const content = fromBuffer(prophetResponse, msg.content)
 
         const db = useDrizzle()
+        console.log(msg)
 
         await db.transaction(async (tx) => {
           const [job] = await tx.select()
