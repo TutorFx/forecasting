@@ -18,7 +18,10 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
 
       # Convert data to DataFrame
       df = pd.DataFrame([{'ds': d.ds, 'y': d.y} for d in request.data])
-      df['ds'] = pd.to_datetime(df['ds'])
+      # Prophet requires ds to be timezone-naive (remove 'Z' or offset if present)
+      df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
+      
+      logger.info(f"Successfully parsed {len(df)} data points for job_id: {request.job_id}")
       
       # Configure Prophet parameters
       periods = request.parameters.periods if request.parameters.periods else 30
@@ -27,7 +30,7 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
       # Prepare response
       response = ForecastResponse()
       response.job_id = request.job_id
-      response.status = "SUCCESS"
+      response.status = "success"
 
       # --- Accuracy Calculation (Train/Test Split) ---
       # Only perform if we have enough data (e.g., at least 10 points)
@@ -78,6 +81,10 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
       
       future = model.make_future_dataframe(periods=periods, freq=freq)
       forecast = model.predict(future)
+      
+      # Filter to only return predictions (exclude historical data)
+      last_date = df['ds'].max()
+      forecast = forecast[forecast['ds'] > last_date]
       
       # Convert forecast to response objects
       for _, row in forecast.iterrows():

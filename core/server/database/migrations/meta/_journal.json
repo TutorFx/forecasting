@@ -8,6 +8,34 @@
       "when": 1769191159332,
       "tag": "0000_steady_silver_surfer",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769194738586,
+      "tag": "0001_add_time_series_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769195437657,
+      "tag": "0002_magical_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769195709128,
+      "tag": "0003_finalize_schema_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769264868158,
+      "tag": "0004_boring_spitfire",
+      "breakpoints": true
     }
   ]
 }
