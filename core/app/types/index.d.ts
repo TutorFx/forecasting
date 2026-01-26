@@ -1,18 +1,8 @@
-interface DataRecord {
-  date: Date
-  amount: number
-  forecast?: {
-    yhatUpper: number
-    yhatLower: number
-  }
+export interface Range {
+  start: Date
+  end: Date
 }
 
-interface DataSegment {
-  name: string
-  data: DataRecord[]
-  color: string
-}
+export type Period = 'daily' | 'weekly' | 'monthly'
 
-interface LineChartProps {
-  data: DataSegment[]
-}
+type DataRecord = { x: number, y: number }
