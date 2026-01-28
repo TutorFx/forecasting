@@ -8,14 +8,14 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     env_file:
-      - core/.env
+      - .env
 
   db:
     image: pgvector/pgvector:pg17
+    env_file:
+      - .env
     ports:
       - "${POSTGRES_PORT}:5432"
-    env_file:
-      - core/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data 
 
