@@ -8,7 +8,11 @@
     },
     "status": {
       "type": "string",
-      "description": "Estado da execução (ex: success, failed)"
+      "description": "Status do processamento",
+      "enum": [
+        "SUCCESS",
+        "FAILED"
+      ]
     },
     "forecast": {
       "type": "array",
