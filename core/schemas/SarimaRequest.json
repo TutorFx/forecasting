@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SarimaRequest",
+  "type": "object",
+  "required": [
+    "job_id",
+    "parameters",
+    "data"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Identificador único do job (UUID)"
+    },
+    "parameters": {
+      "type": "object",
+      "required": [
+        "order",
+        "seasonal_order",
+        "periods",
+        "freq"
+      ],
+      "properties": {
+        "order": {
+          "type": "object",
+          "description": "Parâmetros não sazonais (p, d, q)",
+          "required": [
+            "p",
+            "d",
+            "q"
+          ],
+          "properties": {
+            "p": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "AR: Lag order"
+            },
+            "d": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "I: Degree of differencing"
+            },
+            "q": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "MA: Order of moving average"
+            }
+          }
+        },
+        "seasonal_order": {
+          "type": "object",
+          "description": "Parâmetros sazonais (P, D, Q, s)",
+          "required": [
+            "P",
+            "D",
+            "Q",
+            "s"
+          ],
+          "properties": {
+            "P": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Seasonal AR order"
+            },
+            "D": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Seasonal differencing"
+            },
+            "Q": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Seasonal MA order"
+            },
+            "s": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Seasonal period (ex: 12 para mensal)"
+            }
+          }
+        },
+        "periods": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Quantidade de passos a prever no futuro"
+        },
+        "freq": {
+          "type": "string",
+          "description": "Frequência temporal (ex: D, H, W, MS, AS)"
+        },
+        "trend": {
+          "type": "string",
+          "description": "Componente de tendência",
+          "enum": [
+            "n",
+            "c",
+            "t",
+            "ct"
+          ],
+          "default": "c"
+        }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "description": "Nomes das colunas presentes no objeto data (ex: ['ds', 'y', 'exog1'])",
+      "items": {
+        "type": "string"
+      }
+    },
+    "data": {
+      "type": "array",
+      "description": "Série temporal e possíveis variáveis exógenas",
+      "items": {
+        "type": "object",
+        "required": [
+          "ds",
+          "y"
+        ],
+        "properties": {
+          "ds": {
+            "type": "string",
+            "description": "Data ou Timestamp da observação"
+          },
+          "y": {
+            "type": "number",
+            "description": "Valor alvo da série"
+          }
+        },
+        "additionalProperties": {
+          "type": "number",
+          "description": "Variáveis exógenas extras podem ser adicionadas aqui"
+        }
+      }
+    }
+  }
+}

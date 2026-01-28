@@ -30,7 +30,7 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
       # Prepare response
       response = ForecastResponse()
       response.job_id = request.job_id
-      response.status = "success"
+      response.status = "SUCCESS"
 
       # --- Accuracy Calculation (Train/Test Split) ---
       # Only perform if we have enough data (e.g., at least 10 points)
