@@ -31,18 +31,15 @@
           ],
           "properties": {
             "p": {
-              "type": "integer",
-              "minimum": 0,
+              "type": "number",
               "description": "AR: Lag order"
             },
             "d": {
-              "type": "integer",
-              "minimum": 0,
+              "type": "number",
               "description": "I: Degree of differencing"
             },
             "q": {
-              "type": "integer",
-              "minimum": 0,
+              "type": "number",
               "description": "MA: Order of moving average"
             }
           }
@@ -59,29 +56,24 @@
           "properties": {
             "P": {
               "type": "integer",
-              "minimum": 0,
               "description": "Seasonal AR order"
             },
             "D": {
               "type": "integer",
-              "minimum": 0,
               "description": "Seasonal differencing"
             },
             "Q": {
               "type": "integer",
-              "minimum": 0,
               "description": "Seasonal MA order"
             },
             "s": {
               "type": "integer",
-              "minimum": 1,
               "description": "Seasonal period (ex: 12 para mensal)"
             }
           }
         },
         "periods": {
           "type": "integer",
-          "minimum": 1,
           "description": "Quantidade de passos a prever no futuro"
         },
         "freq": {

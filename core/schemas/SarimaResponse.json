@@ -80,8 +80,8 @@
           },
           "yhat_upper": {
             "type": "number",
-              "description": "Limite superior do intervalo de confiança"
-            }
+            "description": "Limite superior do intervalo de confiança"
+          }
         }
       }
     }

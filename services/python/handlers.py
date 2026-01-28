@@ -4,6 +4,8 @@ from prophet import Prophet
 from models.generated.proto.prophet_request import Message as ProphetRequest
 from models.generated.proto.prophet_response import Message as ForecastResponse, MessageForecast as ForecastResponseForecast, MessageMetrics as ForecastResponseMetrics
 
+from models.generated.proto.prophet_request import Message as ProphetRequest
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -110,3 +112,7 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
     response.job_id = request.job_id
     response.status = f"ERROR: {str(e)}"
     return response
+  
+async def handle_sarima_request(request: SarimaRequest) -> SarimaResponse:
+  logger.info(f"Processing SARIMA job_id: {request.job_id}")
+  
