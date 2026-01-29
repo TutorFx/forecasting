@@ -27,7 +27,7 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
       
       # Configure Prophet parameters
       periods = request.parameters.periods if request.parameters.periods else 30
-      freq = request.parameters.freq if request.parameters.freq else 'D'
+      freq = request.parameters.freq if request.parameters.freq else 'MS'
       
       # Prepare response
       response = ForecastResponse()
@@ -113,6 +113,6 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
     response.status = f"ERROR: {str(e)}"
     return response
   
-async def handle_sarima_request(request: SarimaRequest) -> SarimaResponse:
-  logger.info(f"Processing SARIMA job_id: {request.job_id}")
+# async def handle_sarima_request(request: SarimaRequest) -> SarimaResponse:
+#   logger.info(f"Processing SARIMA job_id: {request.job_id}")
   

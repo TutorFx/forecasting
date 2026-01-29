@@ -19,7 +19,6 @@ export default defineNitroPlugin(async (nitroApp) => {
   })
 
   await channel.assertQueue('ProphetResponse', { durable: true })
-
   channel.consume('ProphetResponse', async (msg) => {
     if (msg) {
       try {
@@ -53,7 +52,7 @@ export default defineNitroPlugin(async (nitroApp) => {
           await tx.delete(tables.forecastItems)
             .where(eq(tables.forecastItems.jobId, job.id))
 
-          if (content.status.toLowerCase() === 'SUCCESS' && content.forecast?.length) {
+          if (content.status.toUpperCase() === 'SUCCESS' && content.forecast?.length) {
             await tx.insert(tables.forecastItems)
               .values(content.forecast.map(item => ({
                 jobId: job.id,
