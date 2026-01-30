@@ -33,8 +33,44 @@ dev = [
     "hatchling>=1.28.0",
     "uvicorn>=0.40.0",
     "watchdog>=6.0.0",
+    "ruff>=0.9.0",
 ]
 
 [project.scripts]
 gen = "scripts.codegen:main"
 dev = "scripts.dev:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+indent-width = 2
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort (imports)
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "ANN",    # flake8-annotations (type hints)
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "ANN101", # missing type annotation for self (deprecated)
+    "ANN102", # missing type annotation for cls (deprecated)
+]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = false
+suppress-none-returning = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["models", "scripts", "services"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

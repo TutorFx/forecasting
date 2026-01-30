@@ -1,110 +1,118 @@
 import logging
+
+import numpy as np
 import pandas as pd
 from prophet import Prophet
-from models.generated.proto.prophet_request import Message as ProphetRequest
-from models.generated.proto.prophet_response import Message as ForecastResponse, MessageForecast as ForecastResponseForecast, MessageMetrics as ForecastResponseMetrics
 
 from models.generated.proto.prophet_request import Message as ProphetRequest
+from models.generated.proto.prophet_response import Message as ForecastResponse
+from models.generated.proto.prophet_response import MessageForecast as ForecastResponseForecast
+from models.generated.proto.prophet_response import MessageMetrics as ForecastResponseMetrics
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Configuration constants
+DEFAULT_PERIODS = 30
+DEFAULT_FREQ = "MS"
+MIN_DATA_POINTS_FOR_METRICS = 10
+TRAIN_SPLIT_RATIO = 0.8
+
+
 async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
   logger.info(f"Processing job_id: {request.job_id}")
   logger.info(f"Data points received: {len(request.data)}")
-  
+
   try:
-      # Check if data exists
-      if not request.data:
-          raise ValueError("No data provided for forecasting")
+    # Check if data exists
+    if not request.data:
+      raise ValueError("No data provided for forecasting")
 
-      # Convert data to DataFrame
-      df = pd.DataFrame([{'ds': d.ds, 'y': d.y} for d in request.data])
-      # Prophet requires ds to be timezone-naive (remove 'Z' or offset if present)
-      df['ds'] = pd.to_datetime(df['ds']).dt.tz_localize(None)
-      
-      logger.info(f"Successfully parsed {len(df)} data points for job_id: {request.job_id}")
-      
-      # Configure Prophet parameters
-      periods = request.parameters.periods if request.parameters.periods else 30
-      freq = request.parameters.freq if request.parameters.freq else 'MS'
-      
-      # Prepare response
-      response = ForecastResponse()
-      response.job_id = request.job_id
-      response.status = "SUCCESS"
+    # Convert data to DataFrame
+    df = pd.DataFrame([{"ds": d.ds, "y": d.y} for d in request.data])
+    # Prophet requires ds to be timezone-naive (remove 'Z' or offset if present)
+    df["ds"] = pd.to_datetime(df["ds"]).dt.tz_localize(None)
 
-      # --- Accuracy Calculation (Train/Test Split) ---
-      # Only perform if we have enough data (e.g., at least 10 points)
-      if len(df) >= 10:
-          split_idx = int(len(df) * 0.8) # 80% train, 20% test
-          train_df = df.iloc[:split_idx]
-          test_df = df.iloc[split_idx:]
-          
-          if len(test_df) > 0:
-              model_test = Prophet()
-              if request.parameters.holiday_country_code:
-                  model_test.add_country_holidays(country_name=request.parameters.holiday_country_code)
-              model_test.fit(train_df)
-              
-              future_test = test_df[['ds']].copy()
-              forecast_test = model_test.predict(future_test)
-              
-              # Merge actuals with forecast to compare
-              results = test_df.merge(forecast_test[['ds', 'yhat']], on='ds')
-              results['error'] = results['y'] - results['yhat']
-              results['abs_error'] = results['error'].abs()
-              results['sq_error'] = results['error'] ** 2
-              results['pct_error'] = (results['error'] / results['y']).abs()
-              
-              # Calculate metrics
-              mae = results['abs_error'].mean()
-              rmse = (results['sq_error'].mean()) ** 0.5
-              
-              # Handle division by zero for MAPE
-              # If any y is 0, MAPE might be infinite or undefined. We can filter or just accept inf.
-              # Let's clean it up slightly: replace inf with 0 or skip
-              import numpy as np
-              valid_mape = results['pct_error'].replace([np.inf, -np.inf], np.nan).dropna()
-              mape = valid_mape.mean() * 100 # Percentage
-              
-              response.metrics = ForecastResponseMetrics(
-                  mae=float(mae),
-                  rmse=float(rmse),
-                  mape=float(mape) if not pd.isna(mape) else 0.0
-              )
-              logger.info(f"Accuracy calculated: MAE={mae:.2f}, RMSE={rmse:.2f}, MAPE={mape:.2f}%")
+    logger.info(f"Successfully parsed {len(df)} data points for job_id: {request.job_id}")
 
-      # --- Final Forecast (Full Data) ---
-      model = Prophet()
-      if request.parameters.holiday_country_code:
-        model.add_country_holidays(country_name=request.parameters.holiday_country_code)
-      model.fit(df)
-      
-      future = model.make_future_dataframe(periods=periods, freq=freq)
-      forecast = model.predict(future)
-      
-      # Filter to only return predictions (exclude historical data)
-      last_date = df['ds'].max()
-      forecast = forecast[forecast['ds'] > last_date]
-      
-      # Convert forecast to response objects
-      for _, row in forecast.iterrows():
-        forecast_point = ForecastResponseForecast()
-        forecast_point.ds = str(row['ds'].strftime('%Y-%m-%d')) # Ensure date string format
-        forecast_point.yhat = float(row.get('yhat', 0.0))
-        forecast_point.yhat_lower = float(row.get('yhat_lower', 0.0))
-        forecast_point.yhat_upper = float(row.get('yhat_upper', 0.0))
-        forecast_point.trend = float(row.get('trend', 0.0))
-        forecast_point.seasonal = float(row.get('seasonal', 0.0))
-        
-        # holidays column is present only if holidays are configured
-        forecast_point.holidays = float(row.get('holidays', 0.0))
-            
-        response.forecast.append(forecast_point)
-      
-      logger.info(f"Forecast generated successfully. Points: {len(response.forecast)}")
-      return response
+    # Configure Prophet parameters
+    periods = request.parameters.periods if request.parameters.periods else DEFAULT_PERIODS
+    freq = request.parameters.freq if request.parameters.freq else DEFAULT_FREQ
+
+    # Prepare response
+    response = ForecastResponse()
+    response.job_id = request.job_id
+    response.status = "SUCCESS"
+
+    # --- Accuracy Calculation (Train/Test Split) ---
+    # Only perform if we have enough data (e.g., at least 10 points)
+    if len(df) >= MIN_DATA_POINTS_FOR_METRICS:
+      split_idx = int(len(df) * TRAIN_SPLIT_RATIO)  # 80% train, 20% test
+      train_df = df.iloc[:split_idx]
+      test_df = df.iloc[split_idx:]
+
+      if len(test_df) > 0:
+        model_test = Prophet()
+        if request.parameters.holiday_country_code:
+          model_test.add_country_holidays(country_name=request.parameters.holiday_country_code)
+        model_test.fit(train_df)
+
+        future_test = test_df[["ds"]].copy()
+        forecast_test = model_test.predict(future_test)
+
+        # Merge actuals with forecast to compare
+        results = test_df.merge(forecast_test[["ds", "yhat"]], on="ds")
+        results["error"] = results["y"] - results["yhat"]
+        results["abs_error"] = results["error"].abs()
+        results["sq_error"] = results["error"] ** 2
+        results["pct_error"] = (results["error"] / results["y"]).abs()
+
+        # Calculate metrics
+        mae = results["abs_error"].mean()
+        rmse = (results["sq_error"].mean()) ** 0.5
+
+        # Handle division by zero for MAPE
+        # If any y is 0, MAPE might be infinite or undefined.
+        valid_mape = results["pct_error"].replace([np.inf, -np.inf], np.nan).dropna()
+        mape = valid_mape.mean() * 100  # Percentage
+
+        response.metrics = ForecastResponseMetrics(
+          mae=float(mae),
+          rmse=float(rmse),
+          mape=float(mape) if not pd.isna(mape) else 0.0,
+        )
+        logger.info(f"Accuracy calculated: MAE={mae:.2f}, RMSE={rmse:.2f}, MAPE={mape:.2f}%")
+
+    # --- Final Forecast (Full Data) ---
+    model = Prophet()
+    if request.parameters.holiday_country_code:
+      model.add_country_holidays(country_name=request.parameters.holiday_country_code)
+    model.fit(df)
+
+    future = model.make_future_dataframe(periods=periods, freq=freq)
+    forecast = model.predict(future)
+
+    # Filter to only return predictions (exclude historical data)
+    last_date = df["ds"].max()
+    forecast = forecast[forecast["ds"] > last_date]
+
+    # Convert forecast to response objects
+    for _, row in forecast.iterrows():
+      forecast_point = ForecastResponseForecast()
+      forecast_point.ds = str(row["ds"].strftime("%Y-%m-%d"))  # Ensure date string format
+      forecast_point.yhat = float(row.get("yhat", 0.0))
+      forecast_point.yhat_lower = float(row.get("yhat_lower", 0.0))
+      forecast_point.yhat_upper = float(row.get("yhat_upper", 0.0))
+      forecast_point.trend = float(row.get("trend", 0.0))
+      forecast_point.seasonal = float(row.get("seasonal", 0.0))
+
+      # holidays column is present only if holidays are configured
+      forecast_point.holidays = float(row.get("holidays", 0.0))
+
+      response.forecast.append(forecast_point)
+
+    logger.info(f"Forecast generated successfully. Points: {len(response.forecast)}")
+    return response
 
   except Exception as e:
     logger.error(f"Error processing job {request.job_id}: {str(e)}", exc_info=True)
@@ -112,7 +120,7 @@ async def handle_prophet_request(request: ProphetRequest) -> ForecastResponse:
     response.job_id = request.job_id
     response.status = f"ERROR: {str(e)}"
     return response
-  
+
+
 # async def handle_sarima_request(request: SarimaRequest) -> SarimaResponse:
 #   logger.info(f"Processing SARIMA job_id: {request.job_id}")
-  
